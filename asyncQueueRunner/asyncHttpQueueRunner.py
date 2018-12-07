@@ -25,6 +25,8 @@ DONE: - move methods from testing over to production file.
 
 - keep a history of action response status and status message
 
+- TODO make a handler that can save files
+
 
 
 
@@ -32,6 +34,7 @@ DONE: - move methods from testing over to production file.
 
 
 from timeit import default_timer as timer
+from datetime import datetime
 #from time import perf_counter_ns as timer
 import asyncio
 import aiohttp
@@ -61,8 +64,8 @@ class AsyncHttpGet(object):
     manipulating the returned data. 
     """
 
-    def __init__(self, url,params = None, responseHandler=None, retryLimit=5):
-        #TODO enable default response handler
+    def __init__(self, url, params=None, responseHandler=None, retryLimit=5,**kwargs):
+        # TODO enable default response handler
 
         #super().__init__(actionHandler=actionHandler, retryLimit=retryLimit)
         self.url = url
@@ -77,14 +80,16 @@ class AsyncHttpGet(object):
         self.responseUrl = None
         self.startTime = 0
         self.endTime = 0
+        self.actionKwargs = kwargs
 
     def __repr__(self):
         return (f'<{self.__class__.__name__}('
-               f'url={self.url!r}, params={self.params!r},'
-               f'responseHandler={self.responseHandler}, retryLimit={self.retryLimit})>')
+                f'url={self.url!r}, params={self.params!r},'
+                f'responseHandler={self.responseHandler}, retryLimit={self.retryLimit})>')
 
     async def doAsyncAction(self, queue, session):
         self.retryCounter += 1
+        self.startTime = datetime.utcnow()
         try:
             async with session.get(self.url, params=self.params) as response:
                 result = await self.responseHandler.handleResponse(
@@ -99,10 +104,23 @@ class AsyncHttpGet(object):
 
         except aiohttp.ClientError as e:
             logger.exception(e)
+        finally:
+            self.endTime = datetime.utcnow()
 
     def elapsedTime(self):
-        return f"{self.endTime-self.startTime:.3f}s"
+        #return f"{self.endTime-self.startTime:.3f}s"
+        return self.endTime-self.startTime
 
+# class AsyncHttpSaveGetResponse(AsyncHttpGetResponseHandler):
+#     def __init__(self, storeResults=False):
+#         super.__init__(storeResults)
+
+#     async def _manipulateResponseText(self, action, responseText, queue):
+#         """override this method to provide custom handling of response text,
+#         like saving to a file or database, or changing text to JSON. Good for 
+#         handling large amounts of data from large numbers of requests.
+#         """
+#         pass
 
 class AsyncHttpGetResponseHandler(object):
     """handle the results of an http get
@@ -119,9 +137,10 @@ class AsyncHttpGetResponseHandler(object):
         # super().__init__()
         self.storeResults = storeResults
         #self.storedResults = None
+
     def __repr__(self):
         return (f'<{self.__class__.__name__}('
-               f'storeResults={self.storeResults!r})>')
+                f'storeResults={self.storeResults!r})>')
 
     async def handleResponse(self, action, response, queue):
         """
@@ -133,7 +152,7 @@ class AsyncHttpGetResponseHandler(object):
         responseUrl = response.url
         responseText = await response.text()
         self._storeResponse(action, responseStatus,
-                            responseReason, responseUrl,responseText)
+                            responseReason, responseUrl, responseText)
         await self._manipulateResponseText(action, responseText, queue)
         await self._checkForRetry(action, queue, responseStatus, responseReason, responseText)
 
@@ -144,7 +163,7 @@ class AsyncHttpGetResponseHandler(object):
         """
         pass
 
-    def _storeResponse(self, action, responseStatus, responseReason, responseUrl,responseText):
+    def _storeResponse(self, action, responseStatus, responseReason, responseUrl, responseText):
         action.completedActionStatus = responseStatus
         action.completedActionStatusMessage = responseReason
         action.responseUrl = responseUrl
@@ -171,27 +190,22 @@ class AsyncHttpQueueRunner(object):
     def __init__(self):
         pass
 
-    
-
     def execute(self, actions, connections):
-        
-        
+
         try:
-            asyncio.run(self._initSession(connections, actions),debug=True)
+            asyncio.run(self._initSession(connections, actions), debug=True)
         except concurrent.futures.CancelledError:
             logger.debug("execute: Another concurrent.futures.CancelledError")
         except Exception:
             logger.exception(
                 "Unhandled exception made it all the way to 'execute'")
-    
+
         # return result
-    
-    
+
     async def _initSession(self, connections, actions):
         async with aiohttp.ClientSession() as session:
             result = await self._doActions(session, connections, actions)
-    
-    
+
     async def _doActions(self, session, connections, actions):
         queue = asyncio.Queue()
         # we init the consumers, as the queues are empty at first,
@@ -204,13 +218,10 @@ class AsyncHttpQueueRunner(object):
         # cancel all coroutines
         for consumer_future in consumers:
             consumer_future.cancel()
-    
-    
+
     async def _consumer(self, queue, session):
         while True:
             action = await queue.get()
-            #start = timer()
-            action.startTime = timer()
             try:
                 if action.retryLimit == -1 or action.retryCounter <= action.retryLimit:
                     result = await action.doAsyncAction(queue, session)
@@ -222,24 +233,18 @@ class AsyncHttpQueueRunner(object):
                     queue.task_done()
                     continue
             except aiohttp.ClientConnectorError as e:
-                #Unable to connect to Host - No internet?
-                #Signals task done to queue, tries to pass exception up the chain,
-                #but it never leaves the loop?
+                # Unable to connect to Host - No internet?
+                # Signals task done to queue, tries to pass exception up the chain,
+                # but it never leaves the loop?
                 queue.task_done()
                 raise e
-    
+
             except Exception as e:
                 logger.exception(e)
 
-            finally:
-                action.endTime = timer()
-    
-            #end = timer()
-    
-            time_to_complete = action.endTime - action.startTime
-            logging.info(f"Time to complete action: {time_to_complete:.3f}s")
-    
-    
+            
+            logging.info(f"Time to complete action: {action.elapsedTime}")
+
     async def _fillQueue(self, queue, actions):
         # Add some performance tracking data to the queue
         queue.highCount = len(actions)

@@ -1,6 +1,7 @@
 import random
 import time
 from timeit import default_timer as timer
+from datetime import datetime
 import asyncio
 import aiohttp
 import pytest
@@ -49,6 +50,7 @@ def test_httpGetESI(capsys):
     assert action.completedActionStatus != None
 
 def test_httpGetESIx2(capsys):
+    startTime = datetime.utcnow()
     responseHandler = AQR.AsyncHttpGetResponseHandler(storeResults=True)
     actions = []
     url = "https://esi.evetech.net/latest/markets/prices/?datasource=tranquility"
@@ -58,9 +60,11 @@ def test_httpGetESIx2(capsys):
     actions.append(action2)
     queueRunner = AQR.AsyncHttpQueueRunner()
     queueRunner.execute(actions, 2)
+    endTime = datetime.utcnow()
     for action in actions:
         printActionResult(action)
-    assert action.completedActionStatus != None
+        assert action.completedActionStatus != None
+    print(f"Total time for test: {endTime-startTime}")
 
 def printActionResult(action):
     print("\n---- result----\n")

@@ -46,6 +46,7 @@ from asyncQueueRunner.asyncQueueRunner import AsyncAction, ActionStatus
 
 MAX_CONSUMERS = 100
 MAX_QUEUE_SIZE = 0
+DATETIMESTRING = datetime.utcnow().strftime('%Y-%m-%dT%H.%M.%S')
 
 
 # setting up logger
@@ -64,7 +65,7 @@ class AsyncHttpGet(object):
     manipulating the returned data. 
     """
 
-    def __init__(self, url, params=None, responseHandler=None, retryLimit=5,**kwargs):
+    def __init__(self, url, params=None, responseHandler=None, retryLimit=5, **kwargs):
         # TODO enable default response handler
 
         #super().__init__(actionHandler=actionHandler, retryLimit=retryLimit)
@@ -108,8 +109,11 @@ class AsyncHttpGet(object):
             self.endTime = datetime.utcnow()
 
     def elapsedTime(self):
-        #return f"{self.endTime-self.startTime:.3f}s"
+        # return f"{self.endTime-self.startTime:.3f}s"
         return self.endTime-self.startTime
+
+    def formatDateTime(self, datetime):
+        return datetime.strftime('%Y-%m-%dT%H.%M.%S')
 
 # class AsyncHttpSaveGetResponse(AsyncHttpGetResponseHandler):
 #     def __init__(self, storeResults=False):
@@ -117,10 +121,67 @@ class AsyncHttpGet(object):
 
 #     async def _manipulateResponseText(self, action, responseText, queue):
 #         """override this method to provide custom handling of response text,
-#         like saving to a file or database, or changing text to JSON. Good for 
+#         like saving to a file or database, or changing text to JSON. Good for
 #         handling large amounts of data from large numbers of requests.
 #         """
 #         pass
+
+
+class AsyncHttpGetResponseManipulator(object):
+    def __init__(self):
+        pass
+
+    async def manipulateResponseText(self, action, responseText, queue):
+        """override this method to provide custom handling of response text,
+        like saving to a file or database, or changing text to JSON. Good for 
+        handling large amounts of data from large numbers of requests.
+        """
+        pass
+
+
+class SaveResponseToFile(AsyncHttpGetResponseManipulator):
+    def __init__(self):
+        super.__init__()
+
+    async def manipulateResponseText(self, action, responseText, queue):
+        """
+        - check for filename and path in action
+        
+        - check validity of path
+        - save to file
+        """
+        filename = ""
+        path = ""
+        if self.isFilenameInAction(action) and self.isPathInAction(action):
+            filename = action.actionKwargs["filename"]
+            path = action.actionKwargs['path']
+        else:
+            logger.warning(f"Expected filename and path, but got filename: {filename} path: {path}")
+
+    def isFilenameInAction(self, action):
+        # check here
+        return True
+
+    def isPathInAction(self, action):
+        # check here
+        return True
+
+    def isPathValid(self, action):
+        # check here
+        return True
+
+    def buildPath(self, action,responseText):
+        # build it
+        return NotImplementedError
+
+    def buildFilename(self,action,responseText):
+        #- check filename for datetime field, build filename
+        return NotImplementedError
+
+    def saveToFile(self, path,filename,text):
+        #do it here
+        raise NotImplementedError()
+
 
 class AsyncHttpGetResponseHandler(object):
     """handle the results of an http get
@@ -133,9 +194,10 @@ class AsyncHttpGetResponseHandler(object):
     This class should be able to
     """
 
-    def __init__(self, storeResults=False):
+    def __init__(self, storeResults=False, responseManipulator=AsyncHttpGetResponseManipulator()):
         # super().__init__()
         self.storeResults = storeResults
+        self.responseManipulator = responseManipulator
         #self.storedResults = None
 
     def __repr__(self):
@@ -153,15 +215,8 @@ class AsyncHttpGetResponseHandler(object):
         responseText = await response.text()
         self._storeResponse(action, responseStatus,
                             responseReason, responseUrl, responseText)
-        await self._manipulateResponseText(action, responseText, queue)
+        await self.responseManipulator.manipulateResponseText(action, responseText, queue)
         await self._checkForRetry(action, queue, responseStatus, responseReason, responseText)
-
-    async def _manipulateResponseText(self, action, responseText, queue):
-        """override this method to provide custom handling of response text,
-        like saving to a file or database, or changing text to JSON. Good for 
-        handling large amounts of data from large numbers of requests.
-        """
-        pass
 
     def _storeResponse(self, action, responseStatus, responseReason, responseUrl, responseText):
         action.completedActionStatus = responseStatus
@@ -176,6 +231,7 @@ class AsyncHttpGetResponseHandler(object):
         if responseStatus == 404:  # ActionStatus.FAIL_NO_RETRY
             return
         if responseStatus == "FOO":  # ActionStatus.RETRY
+            # TODO either reset action.completed statuses, or implement list of statuses
             await queue.put(action)
             return
         logger.info(
@@ -242,8 +298,7 @@ class AsyncHttpQueueRunner(object):
             except Exception as e:
                 logger.exception(e)
 
-            
-            logging.info(f"Time to complete action: {action.elapsedTime}")
+            logging.info(f"Time to complete action: {action.elapsedTime()}")
 
     async def _fillQueue(self, queue, actions):
         # Add some performance tracking data to the queue

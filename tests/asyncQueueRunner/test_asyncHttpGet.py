@@ -2,6 +2,7 @@ import random
 import time
 from timeit import default_timer as timer
 from datetime import datetime
+import json
 import asyncio
 import aiohttp
 import pytest
@@ -20,21 +21,28 @@ logger.setLevel(logging.INFO)
 
 
 
-def test_httpGetESI_MarketHistory():
-    region_id = '10000002'
+def test_httpGetESI_MarketHistory(caplog):
+    caplog.set_level(logging.INFO)
+    startTime = datetime.utcnow()
+    region_id = 10000002
+    type_id = 34
     esiUrl = "https://esi.evetech.net/latest/"
     marketHistoryUrl = f"markets/{region_id}/history/"
-    params = {'type_id':34}
+    filename = f"MarketHistory_{region_id}_{type_id}"+"_{datetime}"
+ 
+    params = {'type_id':type_id}
     responseHandler = AQR.AsyncHttpGetResponseHandler(storeResults=True)
     actions = []
     url = f"{esiUrl}{marketHistoryUrl}"
-    action = AQR.AsyncHttpGet(url, params = params,responseHandler=responseHandler)
+    action = AQR.AsyncHttpGet(url, params = params,responseHandler=responseHandler,filename = filename)
     actions.append(action)
     queueRunner = AQR.AsyncHttpQueueRunner()
     queueRunner.execute(actions, 1)
+    endTime = datetime.utcnow()
     for action in actions:
         printActionResult(action)
-    assert action.completedActionStatus != None
+        assert action.completedActionStatus != None
+    print(f"Total time for test: {endTime-startTime}")
 
 # @pytest.mark.asyncio
 def test_httpGetESI(capsys):
@@ -47,9 +55,10 @@ def test_httpGetESI(capsys):
     queueRunner.execute(actions, 1)
     for action in actions:
         printActionResult(action)
-    assert action.completedActionStatus != None
+        assert action.completedActionStatus != None
 
-def test_httpGetESIx2(capsys):
+def test_httpGetESIx2(caplog,capsys):
+    caplog.set_level(logging.INFO)
     startTime = datetime.utcnow()
     responseHandler = AQR.AsyncHttpGetResponseHandler(storeResults=True)
     actions = []
@@ -65,6 +74,7 @@ def test_httpGetESIx2(capsys):
         printActionResult(action)
         assert action.completedActionStatus != None
     print(f"Total time for test: {endTime-startTime}")
+    
 
 def printActionResult(action):
     print("\n---- result----\n")
@@ -74,12 +84,18 @@ def printActionResult(action):
     print(f"Status Reason: {action.completedActionStatusMessage}")
     print(f"EndTime:   {action.endTime}")
     print(f"StartTime: {action.startTime}")
+    print(f"Formatted Start Time: {action.formatDateTime(action.startTime)}")
+    if 'filename' in action.actionKwargs:
+        print(f"Filename: {action.actionKwargs['filename']}")
+    if 'path' in action.actionKwargs:
+        print(f"Path: {action.actionKwargs['path']}")
     print(f"Time to complete action: {action.elapsedTime()}")
     if action.completedActionData != None:
         first100 = action.completedActionData[0:100]
     else:
         first100 = None
     print(f"Text Recieved(First 100 chars):\n{first100}")
+    #print("test of a format string {foo}".format(foo="foo",end="end"))
 
 def test_initAsyncHttpGet():
     action = AQR.AsyncHttpGet("Test Url")

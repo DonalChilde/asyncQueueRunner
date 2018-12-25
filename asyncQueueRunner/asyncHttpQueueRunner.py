@@ -35,6 +35,7 @@ DONE: - move methods from testing over to production file.
 
 from timeit import default_timer as timer
 from datetime import datetime
+from pathlib import Path
 #from time import perf_counter_ns as timer
 import asyncio
 import aiohttp
@@ -145,42 +146,64 @@ class SaveResponseToFile(AsyncHttpGetResponseManipulator):
 
     async def manipulateResponseText(self, action, responseText, queue):
         """
-        - check for filename and path in action
-        
+
+
         - check validity of path
         - save to file
         """
         filename = ""
         path = ""
         if self.isFilenameInAction(action) and self.isPathInAction(action):
-            filename = action.actionKwargs["filename"]
-            path = action.actionKwargs['path']
+            path = self.buildPath(action, responseText)
+            filename = self.buildFilename(action, responseText)
+            if self.isPathValid(path):
+                textOutput = self._manipulateText(action, responseText)
+                self.saveToFile(path, filename, textOutput)
+            else:
+                logger.warning(f"Invalid path: {path}")
         else:
-            logger.warning(f"Expected filename and path, but got filename: {filename} path: {path}")
+            filename = action.actionKwargs.get("filename")
+            path = action.actionKwargs.get('path')
+            logger.warning(
+                f"Expected filename and path, but got filename: {filename} path: {path}")
+            return
 
     def isFilenameInAction(self, action):
         # check here
+        raise NotImplementedError()
         return True
 
     def isPathInAction(self, action):
         # check here
-        return True
-
-    def isPathValid(self, action):
-        # check here
-        return True
-
-    def buildPath(self, action,responseText):
-        # build it
-        return NotImplementedError
-
-    def buildFilename(self,action,responseText):
-        #- check filename for datetime field, build filename
-        return NotImplementedError
-
-    def saveToFile(self, path,filename,text):
-        #do it here
         raise NotImplementedError()
+        return True
+
+    def isPathValid(self, path):
+
+        return path.exists()
+
+    def buildPath(self, action, responseText):
+        path = Path(action.actionKwargs.get('path'))
+        return path
+
+    def buildFilename(self, action, responseText):
+        # - check filename for datetime field, build filename
+        filename = Path(action.actionKwargs.get('filename'))
+        return filename
+
+    def _manipulateText(self, action, text):
+        raise NotImplementedError()
+        return text
+
+    def combinePathAndFilename(self, path, filename):
+        filepath = Path(path) / Path(filename)
+
+        return filepath
+
+    def saveToFile(self, path, filename, text):
+        filepath = self.combinePathAndFilename(path, filename)
+        with open(filepath, 'wt', '\n') as file:
+            file.write(text)
 
 
 class AsyncHttpGetResponseHandler(object):

@@ -147,7 +147,7 @@ class SaveResponseToFile(AsyncHttpGetResponseManipulator):
     async def manipulateResponseText(self, action, responseText, queue):
         """
 
-
+        - move code to another function, to support easier subclassing.
         - check validity of path
         - save to file
         """

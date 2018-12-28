@@ -28,6 +28,30 @@ def test_httpGetESI_MarketHistory(caplog):
     type_id = 34
     esiUrl = "https://esi.evetech.net/latest/"
     marketHistoryUrl = f"markets/{region_id}/history/"
+    #filename = f"MarketHistory_{region_id}_{type_id}"+"_{datetime}"
+ 
+    params = {'type_id':type_id}
+    responseHandler = AQR.AsyncHttpGetResponseHandler(storeResults=True)
+    actions = []
+    url = f"{esiUrl}{marketHistoryUrl}"
+    action = AQR.AsyncHttpGet(url, params = params,responseHandler=responseHandler)
+    actions.append(action)
+    queueRunner = AQR.AsyncHttpQueueRunner()
+    queueRunner.execute(actions, 1)
+    endTime = datetime.utcnow()
+    for action in actions:
+        printActionResult(action)
+        assert action.completedActionStatus != None
+    print(f"Total time for test: {endTime-startTime}")
+
+def test_httpGetESI_MarketHistory_SaveToFile(caplog):
+    caplog.set_level(logging.INFO)
+    startTime = datetime.utcnow()
+    region_id = 10000002
+    type_id = 34
+    esiUrl = "https://esi.evetech.net/latest/"
+    marketHistoryUrl = f"markets/{region_id}/history/"
+    path = "/Users/croaker/tmp"
     filename = f"MarketHistory_{region_id}_{type_id}"+"_{datetime}"
  
     params = {'type_id':type_id}

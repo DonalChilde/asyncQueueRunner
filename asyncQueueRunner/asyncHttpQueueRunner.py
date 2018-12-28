@@ -151,38 +151,58 @@ class SaveResponseToFile(AsyncHttpGetResponseManipulator):
         - check validity of path
         - save to file
         """
-        filename = ""
-        path = ""
+        filepath = self.validateFilePath(action, responseText)
+        if filepath:
+            textOutput = self._manipulateText(action, responseText)
+            self.saveToFile(filepath, textOutput)
+
+    def validateFilePath(self, action, responseText) ->Path:
         if self.isFilenameInAction(action) and self.isPathInAction(action):
-            path = self.buildPath(action, responseText)
+            path = self.buildBasePath(action, responseText)
             filename = self.buildFilename(action, responseText)
-            if self.isPathValid(path):
-                textOutput = self._manipulateText(action, responseText)
-                self.saveToFile(path, filename, textOutput)
+            if self.isBasePathValid(path):
+                filepath = path / filename
+                if self.canOverwriteFile(filepath):
+                    return filepath
+                else:
+                    logger.warning(f"Cannot overwrite file at {filepath}")
+                    return None
             else:
                 logger.warning(f"Invalid path: {path}")
+                return None
         else:
             filename = action.actionKwargs.get("filename")
             path = action.actionKwargs.get('path')
             logger.warning(
-                f"Expected filename and path, but got filename: {filename} path: {path}")
-            return
+                f"Expected filename and path from action, but got filename: {filename} path: {path}")
+            return None
+
+    def canOverwriteFile(self, filepath: Path)-> bool:
+        # can use more complicated decision making here
+        if filepath.exists():
+            return False
+        else:
+            return True
 
     def isFilenameInAction(self, action):
-        # check here
-        raise NotImplementedError()
-        return True
+        if action.actionKwargs.get('filename'):
+            return True
+        else:
+            return False
 
     def isPathInAction(self, action):
-        # check here
-        raise NotImplementedError()
-        return True
+        if action.actionKwargs.get('path'):
+            return True
+        else:
+            return False
 
-    def isPathValid(self, path):
+    def isBasePathValid(self, path: Path) -> bool:
+        if path.is_dir() and path.exists():
+            return True
+        else:
+            return False
 
-        return path.exists()
-
-    def buildPath(self, action, responseText):
+    def buildBasePath(self, action, responseText) -> Path:
         path = Path(action.actionKwargs.get('path'))
         return path
 
@@ -192,16 +212,16 @@ class SaveResponseToFile(AsyncHttpGetResponseManipulator):
         return filename
 
     def _manipulateText(self, action, text):
-        raise NotImplementedError()
+        # override to do custom manipulation of text.
         return text
 
-    def combinePathAndFilename(self, path, filename):
-        filepath = Path(path) / Path(filename)
+    # def combinePathAndFilename(self, path, filename):
+    #     filepath = Path(path) / Path(filename)
 
-        return filepath
+    #     return filepath
 
-    def saveToFile(self, path, filename, text):
-        filepath = self.combinePathAndFilename(path, filename)
+    def saveToFile(self, filepath: Path,  text: str):
+
         with open(filepath, 'wt', '\n') as file:
             file.write(text)
 

@@ -20,7 +20,6 @@ logger.setLevel(logging.INFO)
 # logger.addHandler(console)
 
 
-
 def test_httpGetESI_MarketHistory(caplog):
     caplog.set_level(logging.INFO)
     startTime = datetime.utcnow()
@@ -29,12 +28,12 @@ def test_httpGetESI_MarketHistory(caplog):
     esiUrl = "https://esi.evetech.net/latest/"
     marketHistoryUrl = f"markets/{region_id}/history/"
     #filename = f"MarketHistory_{region_id}_{type_id}"+"_{datetime}"
- 
-    params = {'type_id':type_id}
-    responseHandler = AQR.AsyncHttpGetResponseHandler(storeResults=True)
+
+    params = {'type_id': type_id}
+    # responseHandler = AQR.AsyncHttpGetResponseHandler(storeResults=True)
     actions = []
     url = f"{esiUrl}{marketHistoryUrl}"
-    action = AQR.AsyncHttpGet(url, params = params,responseHandler=responseHandler)
+    action = AQR.AsyncHttpGet(url, params=params, storeResults=True)
     actions.append(action)
     queueRunner = AQR.AsyncHttpQueueRunner()
     queueRunner.execute(actions, 1)
@@ -44,6 +43,7 @@ def test_httpGetESI_MarketHistory(caplog):
         assert action.completedActionStatus != None
     print(f"Total time for test: {endTime-startTime}")
 
+
 def test_httpGetESI_MarketHistory_SaveToFile(caplog):
     caplog.set_level(logging.INFO)
     startTime = datetime.utcnow()
@@ -52,13 +52,14 @@ def test_httpGetESI_MarketHistory_SaveToFile(caplog):
     esiUrl = "https://esi.evetech.net/latest/"
     marketHistoryUrl = f"markets/{region_id}/history/"
     path = "/Users/croaker/tmp"
-    filename = f"MarketHistory_{region_id}_{type_id}"+"_{datetime}"
- 
-    params = {'type_id':type_id}
-    responseHandler = AQR.AsyncHttpGetResponseHandler(storeResults=True)
+    filename = f"MarketHistory_{region_id}_{type_id}"+f"_{startTime.strftime('%Y-%m-%dT%H.%M.%S')}.json"
+
+    params = {'type_id': type_id}
+    # responseHandler = AQR.AsyncHttpGetResponseHandler(storeResults=True)
     actions = []
     url = f"{esiUrl}{marketHistoryUrl}"
-    action = AQR.AsyncHttpGet(url, params = params,responseHandler=responseHandler,filename = filename)
+    action = AQR.AsyncHttpGet(
+        url, params=params, storeResults=True, filename=filename, path=path, callback=AQR.saveFileCallback)
     actions.append(action)
     queueRunner = AQR.AsyncHttpQueueRunner()
     queueRunner.execute(actions, 1)
@@ -69,11 +70,13 @@ def test_httpGetESI_MarketHistory_SaveToFile(caplog):
     print(f"Total time for test: {endTime-startTime}")
 
 # @pytest.mark.asyncio
+
+
 def test_httpGetESI(capsys):
-    responseHandler = AQR.AsyncHttpGetResponseHandler(storeResults=True)
+    # responseHandler = AQR.AsyncHttpGetResponseHandler(storeResults=True)
     actions = []
     url = "https://esi.evetech.net/latest/markets/prices/?datasource=tranquility"
-    action = AQR.AsyncHttpGet(url, responseHandler=responseHandler)
+    action = AQR.AsyncHttpGet(url, storeResults=True)
     actions.append(action)
     queueRunner = AQR.AsyncHttpQueueRunner()
     queueRunner.execute(actions, 1)
@@ -81,14 +84,15 @@ def test_httpGetESI(capsys):
         printActionResult(action)
         assert action.completedActionStatus != None
 
-def test_httpGetESIx2(caplog,capsys):
+
+def test_httpGetESIx2(caplog, capsys):
     caplog.set_level(logging.INFO)
     startTime = datetime.utcnow()
-    responseHandler = AQR.AsyncHttpGetResponseHandler(storeResults=True)
+    # responseHandler = AQR.AsyncHttpGetResponseHandler(storeResults=True)
     actions = []
     url = "https://esi.evetech.net/latest/markets/prices/?datasource=tranquility"
-    action1 = AQR.AsyncHttpGet(url, responseHandler=responseHandler)
-    action2 = AQR.AsyncHttpGet(url, responseHandler=responseHandler)
+    action1 = AQR.AsyncHttpGet(url, storeResults=True)
+    action2 = AQR.AsyncHttpGet(url, storeResults=True)
     actions.append(action1)
     actions.append(action2)
     queueRunner = AQR.AsyncHttpQueueRunner()
@@ -98,7 +102,7 @@ def test_httpGetESIx2(caplog,capsys):
         printActionResult(action)
         assert action.completedActionStatus != None
     print(f"Total time for test: {endTime-startTime}")
-    
+
 
 def printActionResult(action):
     print("\n---- result----\n")
@@ -121,33 +125,21 @@ def printActionResult(action):
     print(f"Text Recieved(First 100 chars):\n{first100}")
     #print("test of a format string {foo}".format(foo="foo",end="end"))
 
+
 def test_initAsyncHttpGet():
     action = AQR.AsyncHttpGet("Test Url")
     assert action.url == "Test Url"
     assert action.retryCounter == 0
     assert action.retryLimit == 5
     assert action.uuid != None
-    assert action.responseHandler == None
+    # assert action.responseHandler == None
 
-    handler = AQR.AsyncHttpGetResponseHandler(storeResults=True)
-    action2 = AQR.AsyncHttpGet("Test Url2",handler,6)
+    # handler = AQR.AsyncHttpGetResponseHandler(storeResults=True)
+    action2 = AQR.AsyncHttpGet("Test Url2", storeResults=True, retryLimit=6)
     assert action2.url == "Test Url2"
     assert action2.retryLimit == 6
     assert action.uuid != None
-    assert action2.responseHandler == handler 
-
-
-
-
-
-
-
-
-
-
-
-
-
+    # assert action2.responseHandler == handler
 
 
 class ActionStatus(Enum):

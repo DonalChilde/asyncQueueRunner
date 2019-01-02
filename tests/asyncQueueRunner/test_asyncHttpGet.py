@@ -7,6 +7,7 @@ import asyncio
 import aiohttp
 import pytest
 import asyncQueueRunner.asyncHttpQueueRunner as AQR
+
 import pdb
 import logging
 import concurrent.futures
@@ -29,13 +30,13 @@ def test_httpGetESI_MarketHistory(caplog):
     marketHistoryUrl = f"markets/{region_id}/history/"
     #filename = f"MarketHistory_{region_id}_{type_id}"+"_{datetime}"
 
-    getDict = {'params': {'type_id': type_id}}
+    requestParams = {'params': {'type_id': type_id}}
     # responseHandler = AQR.AsyncHttpGetResponseHandler(storeResults=True)
     actions = []
     url = f"{esiUrl}{marketHistoryUrl}"
     # action = AQR.AsyncHttpGet(url, getDict=getDict, storeResults=True)
     queueRunner = AQR.AsyncHttpQueueRunner()
-    action = queueRunner.action_get(url, getDict=getDict, storeResults=True)
+    action = AQR.AsyncHttpRequest.get(url, requestParams=requestParams, storeResults=True)
     actions.append(action)
 
 
@@ -58,14 +59,14 @@ def test_httpGetESI_MarketHistory_SaveToFile(caplog):
     filename = f"MarketHistory_{region_id}_{type_id}" + \
         f"_{startTime.strftime('%Y-%m-%dT%H.%M.%S')}.json"
 
-    getDict = {'params': {'type_id': type_id}}
+    requestParams = {'params': {'type_id': type_id}}
     # responseHandler = AQR.AsyncHttpGetResponseHandler(storeResults=True)
     actions = []
     queueRunner = AQR.AsyncHttpQueueRunner()
     url = f"{esiUrl}{marketHistoryUrl}"
     internalParams = {'saveToFile': {'filename': filename, 'path': path}}
-    action = queueRunner.action_get(
-        url, getDict=getDict, storeResults=True, internalParams=internalParams, callback=AQR.saveFileCallback)
+    action = AQR.AsyncHttpRequest.get(
+        url, requestParams=requestParams, storeResults=True, internalParams=internalParams, callback=AQR.saveFileCallback)
     actions.append(action)
     
     queueRunner.execute(actions, 1)
@@ -83,7 +84,7 @@ def test_httpGetESI(capsys):
     actions = []
     queueRunner = AQR.AsyncHttpQueueRunner()
     url = "https://esi.evetech.net/latest/markets/prices/?datasource=tranquility"
-    action = queueRunner.action_get(url, storeResults=True)
+    action = AQR.AsyncHttpRequest.get(url, storeResults=True)
     actions.append(action)
     
     queueRunner.execute(actions, 1)
@@ -99,8 +100,8 @@ def test_httpGetESIx2(caplog, capsys):
     actions = []
     queueRunner = AQR.AsyncHttpQueueRunner()
     url = "https://esi.evetech.net/latest/markets/prices/?datasource=tranquility"
-    action1 = queueRunner.action_get(url, storeResults=True)
-    action2 = queueRunner.action_get(url, storeResults=True)
+    action1 = AQR.AsyncHttpRequest.get(url, storeResults=True)
+    action2 = AQR.AsyncHttpRequest.get(url, storeResults=True)
     actions.append(action1)
     actions.append(action2)
     
@@ -151,8 +152,4 @@ def test_initAsyncHttpGet():
     # assert action2.responseHandler == handler
 
 
-class ActionStatus(Enum):
-    SUCCESS = 1
-    RETRY = 2
-    FAIL_NO_RETRY = 3
-    ADD_ACTIONS = 4
+

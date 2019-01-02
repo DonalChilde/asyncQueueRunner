@@ -33,6 +33,10 @@ DONE: - make a callback that can save files
 
 - TODO change callbacks to support list of callbacks, to be run sequentially
 
+- TODO support passing params for session
+
+- TODO delay for loop closing re aiohttp client session docs
+
 
 
 
@@ -68,7 +72,7 @@ class ActionStateGet(object):
     """
     """
 
-    def __init__(self, action: AsyncHttpGet, response: aiohttp.client.ClientResponse, queue: asyncio.Queue, responseText: str = "", **kwargs):
+    def __init__(self, action: AsyncHttpRequest, response: aiohttp.client.ClientResponse, queue: asyncio.Queue, responseText: str = "", **kwargs):
         self.action = action
         self.response = response
         self.queue = queue
@@ -76,24 +80,17 @@ class ActionStateGet(object):
         self.stateKwargs = kwargs
 
 
-class AsyncHttpGet(object):
-    """Holds info for an Http Get action, and data from its Response.
-
-    This class holds the info required for a Get action, and can store
-    the info from a response. Typical use is to make a list of these actions
-    by supplying a URL, giving that list to a QueueRunner.execute, and then 
-    manipulating the returned data. 
-    """
-
-    def __init__(self, url: str, getDict: dict = None, storeResults: bool = False, retryOnFail: bool = True, retryLimit: bool = 5, callback=None, internalParams: dict = None):
+class AsyncHttpRequest(object):
+    def __init__(self, method: str, url: str, requestParams: dict = None, storeResults: bool = False, retryOnFail: bool = True, retryLimit: bool = 5, callback=None, internalParams: dict = None):
         # TODO enable default response handler
 
         #super().__init__(actionHandler=actionHandler, retryLimit=retryLimit)
+        self.method = method
         self.url = url
-        if getDict is None:
-            self.getDict = {}
+        if requestParams is None:
+            self.requestParams = {}
         else:
-            self.getDict = getDict
+            self.requestParams = requestParams
         self.uuid = uuid.uuid4()
         self.storeResults = storeResults
         self.retryOnFail = retryOnFail
@@ -114,14 +111,14 @@ class AsyncHttpGet(object):
 
     def __repr__(self):
         return (f'<{self.__class__.__name__}('
-                f'url={self.url!r}, getDict={self.getDict!r}, '
+                f'url={self.url!r}, requestParams={self.requestParams!r}, '
                 f'storeResults={self.storeResults}, retryOnFail={self.retryOnFail}, retryLimit={self.retryLimit})>')
 
     async def doAsyncAction(self, queue, session):
         self.retryCounter += 1
         self.startTime = datetime.utcnow()
         try:
-            async with session.get(self.url, **self.getDict) as response:
+            async with session.request(self.method, self.url, **self.requestParams) as response:
                 state = ActionStateGet(
                     action=self, response=response, queue=queue)
                 state = await self.waitForResponseText(state)
@@ -177,6 +174,113 @@ class AsyncHttpGet(object):
 
     def formatDateTime(self, datetime):
         return datetime.strftime('%Y-%m-%dT%H.%M.%S')
+
+    @classmethod
+    def get(cls, url: str, requestParams: dict = None, storeResults: bool = False, retryOnFail: bool = True, retryLimit: int = 5, callback=None, internalParams: dict = None):
+        return cls('get', url, requestParams=requestParams, storeResults=storeResults, retryOnFail=retryOnFail, retryLimit=retryLimit, callback=callback, internalParams=internalParams)
+
+
+# class AsyncHttpGet(object):
+#     """Holds info for an Http Get action, and data from its Response.
+
+#     This class holds the info required for a Get action, and can store
+#     the info from a response. Typical use is to make a list of these actions
+#     by supplying a URL, giving that list to a QueueRunner.execute, and then 
+#     manipulating the returned data. 
+#     """
+
+#     def __init__(self, url: str, getDict: dict = None, storeResults: bool = False, retryOnFail: bool = True, retryLimit: bool = 5, callback=None, internalParams: dict = None):
+#         # TODO enable default response handler
+
+#         #super().__init__(actionHandler=actionHandler, retryLimit=retryLimit)
+#         self.url = url
+#         if getDict is None:
+#             self.getDict = {}
+#         else:
+#             self.getDict = getDict
+#         self.uuid = uuid.uuid4()
+#         self.storeResults = storeResults
+#         self.retryOnFail = retryOnFail
+#         self.retryCounter = 0
+#         self.retryLimit = retryLimit
+#         self.callback = callback
+#         if internalParams is None:
+#             self.internalParams = {}
+#         else:
+#             self.internalParams = internalParams
+#         self.completedActionStatus = None
+#         self.completedActionStatusMessage = None
+#         self.completedActionData = None
+#         self.responseUrl = None
+#         self.startTime = 0
+#         self.endTime = 0
+#         # self.actionKwargs = kwargs
+
+#     def __repr__(self):
+#         return (f'<{self.__class__.__name__}('
+#                 f'url={self.url!r}, getDict={self.getDict!r}, '
+#                 f'storeResults={self.storeResults}, retryOnFail={self.retryOnFail}, retryLimit={self.retryLimit})>')
+
+#     async def doAsyncAction(self, queue, session):
+#         self.retryCounter += 1
+#         self.startTime = datetime.utcnow()
+#         try:
+#             async with session.get(self.url, **self.getDict) as response:
+#                 state = ActionStateGet(
+#                     action=self, response=response, queue=queue)
+#                 state = await self.waitForResponseText(state)
+#                 if self.retryOnFail:
+#                     state = await self.checkForRetry(state)
+
+#                 if self.callback:
+#                     state = await self.callback(state)
+#                 if self.storeResults:
+#                     self.completedActionData = state.responseText
+#                 return
+#         except asyncio.TimeoutError as e:
+#             logger.exception(e)
+
+#         except aiohttp.ClientConnectionError as e:
+#             logger.exception(f"Connection error in {self} ")
+#             raise e
+
+#         except aiohttp.ClientError as e:
+#             logger.exception(e)
+#         finally:
+#             self.endTime = datetime.utcnow()
+
+#     async def checkForRetry(self, state: ActionStateGet) -> ActionStateGet:
+#         if state.response.status == 200:  # ActionStatus.SUCCESS
+#             return state
+#         if state.response.status == 404:  # ActionStatus.FAIL_NO_RETRY
+#             return state
+#         # 503 Service Unavailable, 504 Gateway Timeout
+#         if state.response.status in [503, 504]:
+#             # TODO either reset action.completed statuses, or implement list of statuses
+#             await state.queue.put(state.action)
+#             logger.info(
+#                 f"Response status {state.response.status} recieved. Resubmitting {state.action} to queue.")
+#             return state
+#         logger.info(
+#             f"Action: {state.action} recieved unhandled response status of {state.response.status}: {state.response.reason}")
+#         # TODO remove this after finding the most common retry senarios
+#         raise NotImplementedError(f"Status Code: {state.response.status}")
+#         # return
+
+#     async def waitForResponseText(self, state: ActionStateGet) -> ActionStateGet:
+#         state.responseText = await state.response.text()
+#         state.action.completedActionStatus = state.response.status
+#         state.action.completedActionStatusMessage = state.response.reason
+#         state.action.responseUrl = state.response.url
+
+#         return state
+
+#     def elapsedTime(self):
+#         # return f"{self.endTime-self.startTime:.3f}s"
+#         return self.endTime-self.startTime
+
+#     def formatDateTime(self, datetime):
+#         return datetime.strftime('%Y-%m-%dT%H.%M.%S')
 
 
 async def saveFileCallback(state: ActionStateGet) -> ActionStateGet:
@@ -375,7 +479,15 @@ class AsyncHttpQueueRunner(object):
         for action in actions:
             await queue.put(action)
 
-    def action_get(self,url: str, getDict: dict = None, storeResults: bool = False, retryOnFail: bool = True, retryLimit: bool = 5, callback=None, internalParams: dict = None) -> AsyncHttpGet:
-        #url, getDict=None, storeResults=False, retryOnFail=True, retryLimit=5, callback=None, **kwargs
-        action = AsyncHttpGet(url, getDict, storeResults, retryOnFail, retryLimit, callback,internalParams)
-        return action
+    # def action_get(self, url: str, getDict: dict = None, storeResults: bool = False, retryOnFail: bool = True, retryLimit: bool = 5, callback=None, internalParams: dict = None) -> AsyncHttpRequest:
+    #     # url, getDict=None, storeResults=False, retryOnFail=True, retryLimit=5, callback=None, **kwargs
+    #     action = AsyncHttpGet(url, getDict, storeResults,
+    #                           retryOnFail, retryLimit, callback, internalParams)
+    #     return action
+
+
+# class ActionStatus(Enum):
+#     SUCCESS = 1
+#     RETRY = 2
+#     FAIL_NO_RETRY = 3
+#     ADD_ACTIONS = 4

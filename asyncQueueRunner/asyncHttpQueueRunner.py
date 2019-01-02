@@ -31,6 +31,8 @@ DONE: - move methods from testing over to production file.
     - TODO refactor to allow different internal callbacks, to support using above.
     - TODO make a factory method to generate appropriate defaults 
 
+- TODO change callbacks to support list of callbacks, to be run sequentially
+
 
 
 
@@ -83,7 +85,7 @@ class AsyncHttpGet(object):
     manipulating the returned data. 
     """
 
-    def __init__(self, url, getDict=None, storeResults=False, retryOnFail=True, retryLimit=5, callback=None, **kwargs):
+    def __init__(self, url, getDict=None, storeResults=False, retryOnFail=True, retryLimit=5, callback=None, internalParams=None):
         # TODO enable default response handler
 
         #super().__init__(actionHandler=actionHandler, retryLimit=retryLimit)
@@ -98,13 +100,17 @@ class AsyncHttpGet(object):
         self.retryCounter = 0
         self.retryLimit = retryLimit
         self.callback = callback
+        if internalParams is None:
+            self.internalParams = {}
+        else:
+            self.internalParams = internalParams
         self.completedActionStatus = None
         self.completedActionStatusMessage = None
         self.completedActionData = None
         self.responseUrl = None
         self.startTime = 0
         self.endTime = 0
-        self.actionKwargs = kwargs
+        # self.actionKwargs = kwargs
 
     def __repr__(self):
         return (f'<{self.__class__.__name__}('
@@ -175,22 +181,29 @@ class AsyncHttpGet(object):
 
 async def saveFileCallback(state: ActionStateGet) -> ActionStateGet:
     filename = ""
-    path= ""
-    if state.action.actionKwargs.get('filename'):
-        filename = state.action.actionKwargs.get('filename')
+    path = ""
+    if state.action.internalParams.get('saveToFile'):
+        if state.action.internalParams.get('saveToFile').get('filename'):
+            filename = state.action.internalParams.get(
+                'saveToFile').get('filename')
+        else:
+            logger.error(
+                f"No filename in action {state.action}. File save aborted.")
+            return state
+
+        if state.action.internalParams.get('saveToFile').get('path'):
+            path = state.action.internalParams.get('saveToFile').get('path')
+        else:
+            logger.error(
+                f"No path in action {state.action}. File save aborted.")
+            return state
     else:
-        logger.error(f"No filename in action {state.action}. File save aborted.")
+        logger.error(
+            f"No save to file info in action {state.action}. File save aborted.")
         return state
 
-    if state.action.actionKwargs.get('path'):
-        path = state.action.actionKwargs.get('path')
-    else:
-        logger.error(f"No path in action {state.action}. File save aborted.")
-        return state
-
-    saveToFile(path,filename,state.responseText)
+    saveToFile(path, filename, state.responseText)
     return state
-
 
 
 def saveToFile(path: str, filename: str, text: str, overwrite: bool = False):
@@ -204,7 +217,7 @@ def saveToFile(path: str, filename: str, text: str, overwrite: bool = False):
         logger.error(
             f"{fullPath} exists, will not overwrite. File save aborted")
         return
-    
+
     try:
         with open(fullPath, 'wt') as file:
             file.write(text)
@@ -361,3 +374,7 @@ class AsyncHttpQueueRunner(object):
         queue.lastReport = timer()
         for action in actions:
             await queue.put(action)
+
+    # def action_get(self,url: str, getDict=None, storeResults=False, retryOnFail=True, retryLimit=5, callback=None, **kwargs) -> AsyncHttpGet:
+    #     #url, getDict=None, storeResults=False, retryOnFail=True, retryLimit=5, callback=None, **kwargs
+    #     action = AsyncHttpGet(url, getDict, storeResults, retryOnFail=True, retryLimit=5, callback=None, kwargs)

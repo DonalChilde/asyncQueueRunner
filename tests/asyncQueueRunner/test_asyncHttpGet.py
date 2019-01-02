@@ -29,7 +29,7 @@ def test_httpGetESI_MarketHistory(caplog):
     marketHistoryUrl = f"markets/{region_id}/history/"
     #filename = f"MarketHistory_{region_id}_{type_id}"+"_{datetime}"
 
-    getDict = {'params':{'type_id': type_id}}
+    getDict = {'params': {'type_id': type_id}}
     # responseHandler = AQR.AsyncHttpGetResponseHandler(storeResults=True)
     actions = []
     url = f"{esiUrl}{marketHistoryUrl}"
@@ -52,14 +52,16 @@ def test_httpGetESI_MarketHistory_SaveToFile(caplog):
     esiUrl = "https://esi.evetech.net/latest/"
     marketHistoryUrl = f"markets/{region_id}/history/"
     path = "/Users/croaker/tmp"
-    filename = f"MarketHistory_{region_id}_{type_id}"+f"_{startTime.strftime('%Y-%m-%dT%H.%M.%S')}.json"
+    filename = f"MarketHistory_{region_id}_{type_id}" + \
+        f"_{startTime.strftime('%Y-%m-%dT%H.%M.%S')}.json"
 
-    getDict = {'params':{'type_id': type_id}}
+    getDict = {'params': {'type_id': type_id}}
     # responseHandler = AQR.AsyncHttpGetResponseHandler(storeResults=True)
     actions = []
     url = f"{esiUrl}{marketHistoryUrl}"
+    internalParams = {'saveToFile': {'filename': filename, 'path': path}}
     action = AQR.AsyncHttpGet(
-        url, getDict=getDict, storeResults=True, filename=filename, path=path, callback=AQR.saveFileCallback)
+        url, getDict=getDict, storeResults=True, internalParams=internalParams, callback=AQR.saveFileCallback)
     actions.append(action)
     queueRunner = AQR.AsyncHttpQueueRunner()
     queueRunner.execute(actions, 1)
@@ -113,10 +115,11 @@ def printActionResult(action):
     print(f"EndTime:   {action.endTime}")
     print(f"StartTime: {action.startTime}")
     print(f"Formatted Start Time: {action.formatDateTime(action.startTime)}")
-    if 'filename' in action.actionKwargs:
-        print(f"Filename: {action.actionKwargs['filename']}")
-    if 'path' in action.actionKwargs:
-        print(f"Path: {action.actionKwargs['path']}")
+    print(f"Internal Params: {action.internalParams}")
+    # if 'filename' in action.actionKwargs:
+    #     print(f"Filename: {action.actionKwargs['filename']}")
+    # if 'path' in action.actionKwargs:
+    #     print(f"Path: {action.actionKwargs['path']}")
     print(f"Time to complete action: {action.elapsedTime()}")
     if action.completedActionData != None:
         first100 = action.completedActionData[0:100]

@@ -33,9 +33,12 @@ def test_httpGetESI_MarketHistory(caplog):
     # responseHandler = AQR.AsyncHttpGetResponseHandler(storeResults=True)
     actions = []
     url = f"{esiUrl}{marketHistoryUrl}"
-    action = AQR.AsyncHttpGet(url, getDict=getDict, storeResults=True)
-    actions.append(action)
+    # action = AQR.AsyncHttpGet(url, getDict=getDict, storeResults=True)
     queueRunner = AQR.AsyncHttpQueueRunner()
+    action = queueRunner.action_get(url, getDict=getDict, storeResults=True)
+    actions.append(action)
+
+
     queueRunner.execute(actions, 1)
     endTime = datetime.utcnow()
     for action in actions:
@@ -58,12 +61,13 @@ def test_httpGetESI_MarketHistory_SaveToFile(caplog):
     getDict = {'params': {'type_id': type_id}}
     # responseHandler = AQR.AsyncHttpGetResponseHandler(storeResults=True)
     actions = []
+    queueRunner = AQR.AsyncHttpQueueRunner()
     url = f"{esiUrl}{marketHistoryUrl}"
     internalParams = {'saveToFile': {'filename': filename, 'path': path}}
-    action = AQR.AsyncHttpGet(
+    action = queueRunner.action_get(
         url, getDict=getDict, storeResults=True, internalParams=internalParams, callback=AQR.saveFileCallback)
     actions.append(action)
-    queueRunner = AQR.AsyncHttpQueueRunner()
+    
     queueRunner.execute(actions, 1)
     endTime = datetime.utcnow()
     for action in actions:
@@ -77,10 +81,11 @@ def test_httpGetESI_MarketHistory_SaveToFile(caplog):
 def test_httpGetESI(capsys):
     # responseHandler = AQR.AsyncHttpGetResponseHandler(storeResults=True)
     actions = []
-    url = "https://esi.evetech.net/latest/markets/prices/?datasource=tranquility"
-    action = AQR.AsyncHttpGet(url, storeResults=True)
-    actions.append(action)
     queueRunner = AQR.AsyncHttpQueueRunner()
+    url = "https://esi.evetech.net/latest/markets/prices/?datasource=tranquility"
+    action = queueRunner.action_get(url, storeResults=True)
+    actions.append(action)
+    
     queueRunner.execute(actions, 1)
     for action in actions:
         printActionResult(action)
@@ -92,12 +97,13 @@ def test_httpGetESIx2(caplog, capsys):
     startTime = datetime.utcnow()
     # responseHandler = AQR.AsyncHttpGetResponseHandler(storeResults=True)
     actions = []
+    queueRunner = AQR.AsyncHttpQueueRunner()
     url = "https://esi.evetech.net/latest/markets/prices/?datasource=tranquility"
-    action1 = AQR.AsyncHttpGet(url, storeResults=True)
-    action2 = AQR.AsyncHttpGet(url, storeResults=True)
+    action1 = queueRunner.action_get(url, storeResults=True)
+    action2 = queueRunner.action_get(url, storeResults=True)
     actions.append(action1)
     actions.append(action2)
-    queueRunner = AQR.AsyncHttpQueueRunner()
+    
     queueRunner.execute(actions, 2)
     endTime = datetime.utcnow()
     for action in actions:

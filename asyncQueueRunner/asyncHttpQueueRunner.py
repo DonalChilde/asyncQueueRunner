@@ -85,7 +85,7 @@ class AsyncHttpGet(object):
     manipulating the returned data. 
     """
 
-    def __init__(self, url, getDict=None, storeResults=False, retryOnFail=True, retryLimit=5, callback=None, internalParams=None):
+    def __init__(self, url: str, getDict: dict = None, storeResults: bool = False, retryOnFail: bool = True, retryLimit: bool = 5, callback=None, internalParams: dict = None):
         # TODO enable default response handler
 
         #super().__init__(actionHandler=actionHandler, retryLimit=retryLimit)
@@ -375,6 +375,7 @@ class AsyncHttpQueueRunner(object):
         for action in actions:
             await queue.put(action)
 
-    # def action_get(self,url: str, getDict=None, storeResults=False, retryOnFail=True, retryLimit=5, callback=None, **kwargs) -> AsyncHttpGet:
-    #     #url, getDict=None, storeResults=False, retryOnFail=True, retryLimit=5, callback=None, **kwargs
-    #     action = AsyncHttpGet(url, getDict, storeResults, retryOnFail=True, retryLimit=5, callback=None, kwargs)
+    def action_get(self,url: str, getDict: dict = None, storeResults: bool = False, retryOnFail: bool = True, retryLimit: bool = 5, callback=None, internalParams: dict = None) -> AsyncHttpGet:
+        #url, getDict=None, storeResults=False, retryOnFail=True, retryLimit=5, callback=None, **kwargs
+        action = AsyncHttpGet(url, getDict, storeResults, retryOnFail, retryLimit, callback,internalParams)
+        return action

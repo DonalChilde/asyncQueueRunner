@@ -25,7 +25,7 @@ DONE: - move methods from testing over to production file.
 
 - keep a history of action response status and status message
 
-- TODO make a callback that can save files
+DONE: - make a callback that can save files
 
 - TODO refactor to use aiohttp.Clientsession.request
     - TODO refactor to allow different internal callbacks, to support using above.

@@ -27,6 +27,10 @@ DONE: - move methods from testing over to production file.
 
 - TODO make a callback that can save files
 
+- TODO refactor to use aiohttp.Clientsession.request
+    - TODO refactor to allow different internal callbacks, to support using above.
+    - TODO make a factory method to generate appropriate defaults 
+
 
 
 
@@ -79,12 +83,15 @@ class AsyncHttpGet(object):
     manipulating the returned data. 
     """
 
-    def __init__(self, url, params=None, storeResults=False, retryOnFail=True, retryLimit=5, callback=None, **kwargs):
+    def __init__(self, url, getDict=None, storeResults=False, retryOnFail=True, retryLimit=5, callback=None, **kwargs):
         # TODO enable default response handler
 
         #super().__init__(actionHandler=actionHandler, retryLimit=retryLimit)
         self.url = url
-        self.params = params
+        if getDict is None:
+            self.getDict = {}
+        else:
+            self.getDict = getDict
         self.uuid = uuid.uuid4()
         self.storeResults = storeResults
         self.retryOnFail = retryOnFail
@@ -101,14 +108,14 @@ class AsyncHttpGet(object):
 
     def __repr__(self):
         return (f'<{self.__class__.__name__}('
-                f'url={self.url!r}, params={self.params!r}, '
+                f'url={self.url!r}, getDict={self.getDict!r}, '
                 f'storeResults={self.storeResults}, retryOnFail={self.retryOnFail}, retryLimit={self.retryLimit})>')
 
     async def doAsyncAction(self, queue, session):
         self.retryCounter += 1
         self.startTime = datetime.utcnow()
         try:
-            async with session.get(self.url, params=self.params) as response:
+            async with session.get(self.url, **self.getDict) as response:
                 state = ActionStateGet(
                     action=self, response=response, queue=queue)
                 state = await self.waitForResponseText(state)

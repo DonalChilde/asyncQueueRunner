@@ -29,11 +29,11 @@ def test_httpGetESI_MarketHistory(caplog):
     marketHistoryUrl = f"markets/{region_id}/history/"
     #filename = f"MarketHistory_{region_id}_{type_id}"+"_{datetime}"
 
-    params = {'type_id': type_id}
+    getDict = {'params':{'type_id': type_id}}
     # responseHandler = AQR.AsyncHttpGetResponseHandler(storeResults=True)
     actions = []
     url = f"{esiUrl}{marketHistoryUrl}"
-    action = AQR.AsyncHttpGet(url, params=params, storeResults=True)
+    action = AQR.AsyncHttpGet(url, getDict=getDict, storeResults=True)
     actions.append(action)
     queueRunner = AQR.AsyncHttpQueueRunner()
     queueRunner.execute(actions, 1)
@@ -54,12 +54,12 @@ def test_httpGetESI_MarketHistory_SaveToFile(caplog):
     path = "/Users/croaker/tmp"
     filename = f"MarketHistory_{region_id}_{type_id}"+f"_{startTime.strftime('%Y-%m-%dT%H.%M.%S')}.json"
 
-    params = {'type_id': type_id}
+    getDict = {'params':{'type_id': type_id}}
     # responseHandler = AQR.AsyncHttpGetResponseHandler(storeResults=True)
     actions = []
     url = f"{esiUrl}{marketHistoryUrl}"
     action = AQR.AsyncHttpGet(
-        url, params=params, storeResults=True, filename=filename, path=path, callback=AQR.saveFileCallback)
+        url, getDict=getDict, storeResults=True, filename=filename, path=path, callback=AQR.saveFileCallback)
     actions.append(action)
     queueRunner = AQR.AsyncHttpQueueRunner()
     queueRunner.execute(actions, 1)

@@ -1,39 +1,34 @@
 """
 
 Things to do:
-- Add optional access to actions to QueueRunner class, support access to
-    new actions generated inside coro loop, ie. in action handler.
-
 DONE: - add uuid support to action to make it easy to id
 
 - add logging all over to figure out what is going on
 
 - add documentaion all over so I don't loose the train of thought.
 
-- Use type hints
+Done: Use type hints
 
 - How to abort actions if unable to connect to internet.
 
-- make a queuerunner class that holds the queue, and has convenience functions like add, retry
-    retry, fail, failall, newAction
 
 DONE: - move methods from testing over to production file.
 
 - add tests for all methods, refactor as necessary.
 
-- Add repr to classes
+- TODO update/Add repr to classes
 
 - keep a history of action response status and status message
 
 DONE: - make a callback that can save files
 
-- TODO refactor to use aiohttp.Clientsession.request
+Done: refactor to use aiohttp.Clientsession.request
     - TODO refactor to allow different internal callbacks, to support using above.
-    - TODO make a factory method to generate appropriate defaults 
+    Done: make a factory method to generate appropriate defaults 
 
 - TODO change callbacks to support list of callbacks, to be run sequentially
 
-- TODO support passing params for session
+Done support passing params for session
 
 - TODO delay for loop closing re aiohttp client session docs
 

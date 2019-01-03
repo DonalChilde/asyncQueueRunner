@@ -80,9 +80,6 @@ class RequestState(object):
 
 class AsyncHttpRequest(object):
     def __init__(self, method: str, url: str, requestParams: dict = None, storeResults: bool = False, retryOnFail: bool = True, retryLimit: bool = 5, callback=None, internalParams: dict = None):
-        # TODO enable default response handler
-
-        #super().__init__(actionHandler=actionHandler, retryLimit=retryLimit)
         self.method = method
         self.url = url
         if requestParams is None:

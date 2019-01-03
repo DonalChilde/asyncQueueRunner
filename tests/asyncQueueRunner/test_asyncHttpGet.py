@@ -109,16 +109,16 @@ def test_httpGetESIx2(caplog, capsys):
     endTime = datetime.utcnow()
     for action in actions:
         printActionResult(action)
-        assert action.completedActionStatus != None
+        assert action.response.status != None
     print(f"Total time for test: {endTime-startTime}")
 
 
 def printActionResult(action):
     print("\n---- result----\n")
     print(f"Action: {action}")
-    print(f"Response URL: {action.responseUrl}")
-    print(f"Status Code: {action.completedActionStatus}")
-    print(f"Status Reason: {action.completedActionStatusMessage}")
+    print(f"Response URL: {action.response.url}")
+    print(f"Status Code: {action.response.status}")
+    print(f"Status Reason: {action.response.reason}")
     print(f"EndTime:   {action.endTime}")
     print(f"StartTime: {action.startTime}")
     print(f"Formatted Start Time: {action.formatDateTime(action.startTime)}")
@@ -137,7 +137,7 @@ def printActionResult(action):
 
 
 def test_initAsyncHttpGet():
-    action = AQR.AsyncHttpGet("Test Url")
+    action = AQR.AsyncHttpRequest.get("Test Url")
     assert action.url == "Test Url"
     assert action.retryCounter == 0
     assert action.retryLimit == 5
@@ -145,7 +145,7 @@ def test_initAsyncHttpGet():
     # assert action.responseHandler == None
 
     # handler = AQR.AsyncHttpGetResponseHandler(storeResults=True)
-    action2 = AQR.AsyncHttpGet("Test Url2", storeResults=True, retryLimit=6)
+    action2 = AQR.AsyncHttpRequest.get("Test Url2", storeResults=True, retryLimit=6)
     assert action2.url == "Test Url2"
     assert action2.retryLimit == 6
     assert action.uuid != None

@@ -99,10 +99,10 @@ class AsyncHttpRequest(object):
             self.internalParams = {}
         else:
             self.internalParams = internalParams
-        self.completedActionStatus = None
-        self.completedActionStatusMessage = None
+        self.response = None
+        # self.completedActionStatusMessage = None
         self.completedActionData = None
-        self.responseUrl = None
+        # self.responseUrl = None
         self.startTime = 0
         self.endTime = 0
         # self.actionKwargs = kwargs
@@ -159,9 +159,9 @@ class AsyncHttpRequest(object):
 
     async def waitForResponseText(self, state: RequestState) -> RequestState:
         state.responseText = await state.response.text()
-        state.action.completedActionStatus = state.response.status
-        state.action.completedActionStatusMessage = state.response.reason
-        state.action.responseUrl = state.response.url
+        state.action.response = state.response
+        # state.action.completedActionStatusMessage = state.response.reason
+        # state.action.responseUrl = state.response.url
 
         return state
 

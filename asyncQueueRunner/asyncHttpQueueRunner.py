@@ -139,11 +139,11 @@ class AsyncHttpRequest(object):
     async def checkForRetry(self, state: RequestState) -> RequestState:
         if state.response.status == 200:  # ActionStatus.SUCCESS
             return state
-        # 400 Bad Request, 404 Page not found
-        if state.response.status == [404,400]:  # ActionStatus.FAIL_NO_RETRY
+        # 400 Bad Request, 404 Page not found, 304 Not Modified, 420 Error Limited
+        if state.response.status == [304,404,400,420]:  # ActionStatus.FAIL_NO_RETRY
             return state
-        # 503 Service Unavailable, 504 Gateway Timeout
-        if state.response.status in [503, 504]:
+        # 500 Internal server error, 503 Service Unavailable, 504 Gateway Timeout
+        if state.response.status in [500, 503, 504]:
             # TODO either reset action.completed statuses, or implement list of statuses
             await state.queue.put(state.action)
             logger.info(

@@ -32,6 +32,8 @@ Done support passing params for session
 
 - TODO delay for loop closing re aiohttp client session docs
 
+- TODO figure relationship between max connections and max consumers.
+
 
 
 

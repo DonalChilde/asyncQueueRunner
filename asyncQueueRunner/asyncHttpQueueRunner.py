@@ -33,6 +33,8 @@ Done support passing params for session
 - TODO delay for loop closing re aiohttp client session docs
 
 - TODO figure relationship between max connections and max consumers.
+- TODO better fail handling. shortcut callback if request fails? flag to notifiy callback of fail? 
+    or just have callback check for fail if desired.....
 
 
 
@@ -140,7 +142,7 @@ class AsyncHttpRequest(object):
         if state.response.status == 200:  # ActionStatus.SUCCESS
             return state
         # 400 Bad Request, 404 Page not found, 304 Not Modified, 420 Error Limited
-        if state.response.status == [304,404,400,420]:  # ActionStatus.FAIL_NO_RETRY
+        if state.response.status in [304,404,400,420]:  # ActionStatus.FAIL_NO_RETRY
             return state
         # 500 Internal server error, 503 Service Unavailable, 504 Gateway Timeout
         if state.response.status in [500, 503, 504]:

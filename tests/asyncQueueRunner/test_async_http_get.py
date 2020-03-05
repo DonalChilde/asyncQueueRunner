@@ -1,22 +1,24 @@
-import aiohttp
-import pytest
 import asyncio
+import csv
 import json
 from pathlib import Path
+
+import aiohttp
+import pytest
+
 from asyncQueueRunner.async_http_get import (
+    HttpAction,
+    HttpQueueRunner,
     QueueAction,
     QueueRunner,
     basic_worker,
-    HttpQueueRunner,
-    HttpAction,
-    print_response,
-    save_response,
-    process_response_to_json,
-    print_page_number,
     check_for_pages,
-    save_response_to_csv,
+    print_page_number,
+    print_response,
+    process_response_to_json,
     save_processed_response,
     save_response,
+    save_response_to_csv,
     save_response_to_json,
 )
 
@@ -199,6 +201,40 @@ def test_get_region_market_history():
         f"~/tmp/market_history_{region_id}_{type_id}_.json"
     ).expanduser()
     actions.append(action)
+    runner = HttpQueueRunner()
+    asyncio.run(runner.do_queue(actions, 5))
+
+
+def test_get_region_market_history_from_file():
+    actions = []
+    server_url = "https://esi.evetech.net"
+    region_ids = []
+    type_ids = []
+    market_hub_path = Path(
+        "/home/chad/projects/asyncQueueRunner/tests/resources/market_hub_region_ids.csv"
+    )
+    type_id_path = Path(
+        "/home/chad/projects/asyncQueueRunner/tests/resources/type_ids.csv"
+    )
+    with open(market_hub_path, newline="") as market_file:
+        region_ids = list(csv.reader(market_file))
+    with open(type_id_path, newline="") as type_id_file:
+        type_ids = list(csv.reader(type_id_file))
+
+    for region_id in region_ids:
+        for type_id in type_ids[0:100]:
+            api_url = f"/v1/markets/{region_id[0]}/history/"
+            request_params = {"datasource": "tranquility", "type_id": type_id[0]}
+            action = HttpAction(
+                method="GET",
+                url=server_url + api_url,
+                request_params=request_params,
+                response_handlers=[print_response, save_response],
+            )
+            action.context["save_path"] = Path(
+                f"~/tmp/market_history_{region_id[0]}_{type_id[0]}_.json"
+            ).expanduser()
+            actions.append(action)
     runner = HttpQueueRunner()
     asyncio.run(runner.do_queue(actions, 5))
 

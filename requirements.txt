@@ -1,9 +1,2 @@
 
 aiohttp 
-pytest-asyncio 
-
-
-pylint 
-pytest
-rope 
-black

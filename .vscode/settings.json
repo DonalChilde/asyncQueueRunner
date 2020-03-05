@@ -1,7 +1,11 @@
 {
-    "python.pythonPath": "/home/chad/projects/asyncQueueRunner/.venv/bin/python3",
-    "python.testing.unittestEnabled": false,
-    "python.testing.pytestEnabled": true,
-    "python.testing.nosetestsEnabled": false,
-    "python.testing.pytestArgs": ["-l","-v","-s","--tb=native","-W ignore::DeprecationWarning","--log-cli-level=INFO"]
+    "restructuredtext.confPath": "",
+  "python.pythonPath": ".venv/bin/python",
+  "python.linting.pylintEnabled": true,
+  "python.formatting.provider": "black",
+  "editor.formatOnSave": true,
+  "python.autoComplete.extraPaths": ["./src"],
+  "python.testing.unittestEnabled": false,
+  "python.testing.nosetestsEnabled": false,
+  "python.testing.pytestEnabled": true
 }
